@@ -46,11 +46,11 @@ data State = State {
 main :: IO ()
 main = do
         putStrLn "Vamos ao jogo, digite 1 para iniciar!"
-        thematic <- getLine
+        checker <- getLine
         fim <- newMVar 1
         score <- newMVar (0,0)
         level <- newMVar 1
-        forkIO(newPuzzle fim level score thematic)
+        forkIO(newGame fim level score thematic)
         waitThreads fim
         return ()
 
@@ -62,3 +62,26 @@ waitThreads fim = do
             waitThreads fim
     else
         return ()
+
+-- Loop para vários jogos
+-- Se vocễ digitar 'q' ele irá finalizar o jogo
+-- Caso você digite qualquer outra tecla ele irá aumentar o level de dificuldade e começar de novo
+newGame:: MVar Int -> Level -> Score -> [Char] -> IO ()
+newGame fim level score checker = do
+    game level score checker
+    putStrLn "GGWP! Para jogar mais uma, mas com um level mais dificil, digite qualquer tecla, para sair digite q"
+    resp <- getChar 
+    if resp /= 'q' then do
+        l <- takeMVar level
+        putMVar level (l+1)
+        newGame fim level score checker
+        else do 
+        putStrLn "Obrigado por jogar!";
+        f <- takeMVar fim;
+        putMVar fim (f-1);
+
+-- A inicalização da tela de jogo
+game :: Level -> Score -> [Char] -> IO State
+game level score checker = clearScreen
+    >> firstState score level
+    >>= (iterateUntilM gameOver (step score checker))
