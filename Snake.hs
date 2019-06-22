@@ -248,6 +248,60 @@ player2HasSurprise state
 vectorAdd :: Vector -> MoveVector -> Vector
 vectorAdd (x1, y1) (a, x2, y2) = (x1 + x2, y1 + y2)
 
+-- Retorna uma posição que não esteja ocupada por nenhum outro elemento
+newGood :: State -> StdGen -> Vector
+newGood state st
+    = randomPosition validPositions5 st
+        where allPositions   = concat $ boardPositions $ board state
+              validPositions1 = allPositions \\ player1 state
+              validPositions2 = validPositions1 \\ player2 state
+              validPositions3 = validPositions2 \\ evil state
+              validPositions4 = validPositions3 \\ good state
+              validPositions5 = validPositions4 \\ surprise state
+
+--Aqui gera pelo menos um elemento bom
+newGoods :: State -> Int -> [Vector]
+newGoods state 0 = [newGood state (mkStdGen 1)]
+newGoods state n = [newGood state (mkStdGen (n+1))] ++ newEvils state (n-1)
+
+--Aleatorizar os elementos bons
+scrambleGoods :: [Vector] -> [Vector]
+scrambleGoods g = map mix g
+
+mix :: Vector -> Vector
+mix (a,b) = ((a*a `mod` 60),(b*a `mod` 30))
+
+-- Retorna uma posição que não esteja ocupada por nenhum outro elemento
+newEvil :: State -> StdGen -> Vector
+newEvil state st
+    = randomPosition validPositions5 st
+        where allPositions   = concat $ boardPositions $ board state
+              validPositions1 = allPositions \\ player1 state
+              validPositions2 = validPositions1 \\ player2 state
+              validPositions3 = validPositions2 \\ evil state
+              validPositions4 = validPositions3 \\ good state
+              validPositions5 = validPositions4 \\ surprise state
+
+newEvils :: State -> Int -> [Vector]
+newEvils state 0 = [newEvil state (mkStdGen 0)]
+newEvils state n = [newEvil state (mkStdGen n)] ++ newEvils state (n-1)
+
+-- Retorna uma posição que não esteja ocupada por nenhum outro elemento
+newSurprise :: State -> StdGen -> Vector
+newSurprise state st
+    = randomPosition validPositions5 st
+        where allPositions   = concat $ boardPositions $ board state
+              validPositions1 = allPositions \\ player1 state
+              validPositions2 = validPositions1 \\ player2 state
+              validPositions3 = validPositions2 \\ evil state
+              validPositions4 = validPositions3 \\ good state
+              validPositions5 = validPositions4 \\ surprise state
+
+newSurprises :: State -> Int -> [Vector]
+newSurprises state 0 = [newSurprise state (mkStdGen 0)]
+newSurprises state n = [newSurprise state (mkStdGen n)] ++ newSurprises state (n-1) 
+
+
 -- Inicializando o jogo
 main :: IO ()
 main = do
