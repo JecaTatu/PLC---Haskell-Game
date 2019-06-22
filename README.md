@@ -19,8 +19,10 @@ Após o cabal estar instalado, execute esse comando na pasta do projeto para ins
 $ cabal build
 
 Depois execute:
+
 $ ghc -threaded -o game Puzzle.hs
 
 E por fim:
+
 $ ./game
 
