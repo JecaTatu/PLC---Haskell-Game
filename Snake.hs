@@ -346,6 +346,43 @@ theme checker state position
     | (checker == "1") && (position `elem` surprise state) = '🎁'
     | (checker == "1") = '⬜'
 
+--Verifica se o jogo acabou ou não
+gameOver :: State -> Bool
+gameOver (State { player1 = [] }) = True
+gameOver (State { player2 = [] }) = True
+gameOver state 
+    | death state > 0 = True
+    | otherwise       = False
+
+-- Recebe um estado e verifica qual playler morreu
+death :: State -> Int
+death (State { player1 = [] }) = 2
+death (State { player2 = [] }) = 1
+death (State {
+    board = boardSize,
+    player1 = (playerHead1@(playerHeadX1, playerHeadY1):playerBody1),
+    player2 = (playerHead2@(playerHeadX2, playerHeadY2):playerBody2),
+    evil = e
+})
+    | playerHeadX1 >= boardSize*2 || playerHeadX1 < 0 = 2
+    | playerHeadY1 >= boardSize || playerHeadY1 < 0 = 2
+    | playerHead1 `elem` playerBody1                = 2
+    | playerHead1 `elem` playerBody2                = 2
+    | playerHead1 `elem` e                   = 2
+    | playerHead2 `elem` playerBody1                = 1
+    | playerHeadX2 >= boardSize*2 || playerHeadX2 < 0 = 1
+    | playerHeadY2 >= boardSize || playerHeadY2 < 0 = 1
+    | playerHead2 `elem` playerBody2                = 1
+    | playerHead2 `elem` e                   = 1
+    | otherwise                                   = 0
+
+moveVectorOpposite :: MoveVector -> MoveVector
+moveVectorOpposite (z, x, y) = (z, -x, -y)
+
+first :: MoveVector -> Int
+first (z, x, y) = z
+
+
 -- Inicializando o jogo
 main :: IO ()
 main = do
