@@ -42,18 +42,6 @@ data State = State {
     count :: Int
 } deriving Show
 
--- Inicializando o jogo
-main :: IO ()
-main = do
-        putStrLn "Vamos ao jogo, digite 1 para iniciar!"
-        checker <- getLine
-        fim <- newMVar 1
-        score <- newMVar (0,0)
-        level <- newMVar 1
-        forkIO(newGame fim level score thematic)
-        waitThreads fim
-        return ()
-
 waitThreads :: MVar Int -> IO ()
 waitThreads fim = do 
     f <- takeMVar fim
@@ -157,3 +145,94 @@ getVector (Just 'j') = Just (1, -1,  0)
 getVector (Just 'k') = Just (1, 0, -1)
 getVector (Just 'l') = Just (1, 1,  0)
 getVector _          = Nothing
+
+-- Todos os updates são funções que mudam o estado dos players
+updateState :: State -> Maybe MoveVector -> State
+updateState state inputMove
+        = updateItens $ updatePlayer1 $ updatePlayer2 $ updateMove state inputMove
+
+updateMove :: State -> Maybe MoveVector -> State
+updateMove state@(State { move1 = Just moveVector1, move2 = Just moveVector2}) inputMove@(Just inputVector)
+    | first inputVector == 0 && inputVector /= moveVectorOpposite moveVector1 
+        = state { move1 = inputMove <|> move1 state }
+    | first inputVector == 1 && inputVector /= moveVectorOpposite moveVector2 
+        = state { move2 = inputMove <|> move1 state }
+updateMove state _ = state
+
+updatePlayer1 :: State -> State
+updatePlayer1 = updatePlayer1Tail . updateHeadPlayer1
+
+updatePlayer2 :: State -> State
+updatePlayer2 = updatePlayerTail2 . updateHeadPlayer2
+
+--Aqui dá um update nos good e nos evil
+updateItens :: State -> State
+updateItens state@(State {points1 = s1, points2 = s2, good = g, evil = e, surprise = s, std = rd, level = l, count = c})
+    | player1HasSurprise state = state { surprise = scrambleGoods (s), points1 = (s1+1),std = neo2}
+    | player2HasSurprise state = state { surprise = scrambleGoods (s), points2 = (s2+1),std = neo2}
+    | (player1HasBenefit state) && (c >= 4) = state { good = scrambleGoods (g ++ newGoods state index1), evil = e ++ newEvils state index2, surprise = s ++ newSurprises state index3, points1 = (s1+1),std = neo2}
+    | (player2HasBenefit state) && (c >= 4) = state { good = scrambleGoods (g ++ newGoods state index1), evil = e ++ newEvils state index2, surprise = s ++ newSurprises state index3, points2 = (s2+1),std = neo2}
+    | (player1HasBenefit state) && (c >= 2) = state { good = scrambleGoods (g ++ newGoods state index1), evil = e ++ newEvils state index2, points1 = (s1+1),std = neo2, count = (c+1)}
+    | (player2HasBenefit state) && (c >= 2) = state { good = scrambleGoods(g ++ newGoods state index1), evil = e ++ newEvils state index2, points2 = (s2+1),std = neo2, count = (c+1)}
+    | player1HasBenefit state = state { good = scrambleGoods (g ++ newGoods state index1), points1 = (s1+1),std = neo2, count = (c+1)}
+    | player2HasBenefit state = state { good = scrambleGoods(g ++ newGoods state index1), points2 = (s2+1),std = neo2, count = (c+1)}
+    | otherwise                  = state
+    where indexStdGenTuple1 = randomR (0, 1) (rd)
+          index1            = (fst indexStdGenTuple1)
+          neo              = snd indexStdGenTuple1
+          indexStdGenTuple2 = randomR (0, l) (neo)
+          index2            = (fst indexStdGenTuple2)
+          neo2              = snd indexStdGenTuple1
+          indexStdGenTuple3 = randomR (1, 2) (neo2)
+          index3            = (fst indexStdGenTuple3)
+
+-- Adiciona um elemento na cabeça do vetor
+updateHeadPlayer1 :: State -> State
+updateHeadPlayer1 state@(State { move1 = (Just vector) })
+    = state { player1 = head (player1 state) `vectorAdd` vector : player1 state }
+updateHeadPlayer1 state = state
+
+updateHeadPlayer2 :: State -> State
+updateHeadPlayer2 state@(State { move2 = (Just vector) })
+    = state { player2 = head (player2 state) `vectorAdd` vector : player2 state }
+updateHeadPlayer2 state = state
+
+-- Remove um elemento da cauda do vetor caso ele não tenha chegado a um beneficio ou uma surpresa
+updatePlayer1Tail :: State -> State
+updatePlayer1Tail state
+    | player1HasBenefit state = state
+    | player1HasSurprise state = rand1 state
+    | otherwise                  = state { player1 = init $ player1 state }
+
+updatePlayerTail2 :: State -> State
+updatePlayerTail2 state
+    | player2HasBenefit state = state
+    | player2HasSurprise state = rand2 state
+    | otherwise                  = state { player2 = init $ player2 state }
+
+rand1 :: State -> State
+rand1 state@(State {std = rd, points1 = s1})
+    | (randomFunction [0,1] rd) == 0 = state { player1 = init $ (init $ (init $ (init $ player1 state))), points1 = (s1-2)}
+    | (randomFunction [0,1] rd) == 1 = updateHeadPlayer1 ( updateHeadPlayer1 ( updateHeadPlayer1 state ))
+
+rand2 :: State -> State
+rand2 state@(State {std = rd, points2 = s2})
+    | (randomFunction [0,1] rd) == 0 = state { player2 = init $ (init $ (init $ (init $ player2 state))), points2 = (s2-2)}
+    | (randomFunction [0,1] rd) == 1 = updateHeadPlayer2 (updateHeadPlayer2 ( updateHeadPlayer2 state))
+    
+randomFunction :: [Int] -> StdGen -> Int
+randomFunction x inputStdGen = element
+    where indexStdGenTuple = randomR (0, length x - 1) inputStdGen
+          element = fst (indexStdGenTuple)
+
+-- Inicializando o jogo
+main :: IO ()
+main = do
+        putStrLn "Vamos ao jogo, digite 1 para iniciar!"
+        checker <- getLine
+        fim <- newMVar 1
+        score <- newMVar (0,0)
+        level <- newMVar 1
+        forkIO(newGame fim level score thematic)
+        waitThreads fim
+        return ()
