@@ -71,7 +71,7 @@ newGame fim level score checker = do
 -- A inicalização da tela de jogo
 game :: Level -> Score -> [Char] -> IO State
 game level score checker = clearScreen
-    >> firstState score level
+    >> baseState score level
     >>= (iterateUntilM gameOver (step score checker))
 
 -- Estado inicial de cada jogo, ele recebe o level e o score do jogo e retorna um estado
@@ -391,6 +391,6 @@ main = do
         fim <- newMVar 1
         score <- newMVar (0,0)
         level <- newMVar 1
-        forkIO(newGame fim level score thematic)
+        forkIO(newGame fim level score checker)
         waitThreads fim
         return ()
