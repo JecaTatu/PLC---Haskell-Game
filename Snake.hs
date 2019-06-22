@@ -301,6 +301,50 @@ newSurprises :: State -> Int -> [Vector]
 newSurprises state 0 = [newSurprise state (mkStdGen 0)]
 newSurprises state n = [newSurprise state (mkStdGen n)] ++ newSurprises state (n-1) 
 
+-- O Score acessa a MVar e atualiza os seus valores
+updateScore :: Score -> State -> IO ()
+updateScore score state@( State {points1 = p1, points2 = p2}) = do
+                                                                takeMVar score
+                                                                putMVar score (p1,p2)
+                                                            
+--Essa e a impressão do jogo
+displayState :: Score -> [Char] -> State -> IO State
+displayState score checker state = setCursorPosition 0 0
+    >> updateScore score state
+    >> putStr (render state checker) 
+    >> return state
+
+render :: State -> [Char] -> String 
+render state checker
+    = unlines $ putBorder checker state
+              $ map (renderRow checker state)
+              $ boardPositions (board state)
+
+putBorder :: [Char] -> State -> [String] -> [String]
+putBorder checker state@(State { board = size, points1 = s1, points2= s2, evil = e, good =g}) renderedRows
+    = border ++ map (\row -> "" ++ row ++ "") renderedRows ++ border ++ score ++ text 
+        where border = [replicate (size*2 + 2) ' ']
+              score
+                | checker == "1" = ["🔵 Player 1: " ++ show s1 ++ "\n" ++ "🔴 Player 2: " ++ show s2 ++ "\n"]
+                | otherwise = [""]
+              text
+                | death state == 0 = [""]
+                | (checker == "1") && (death state == 1) = ["E o vencedor é... Player 1!\n"]
+                | (checker == "1") && (death state == 2) = ["E o vencedor é... Player 2!\n"]
+                | (checker == "1") && (death state == 3) = ["Ninguém e ninguém perdeu, porque no fim, todos vamos ganhar e perder!"]
+                | otherwise = ["!!!"]
+
+renderRow :: [Char] -> State -> [Vector] -> String
+renderRow checker state = map (theme checker state)
+
+theme :: [Char] -> State -> Vector -> Char
+theme checker state position
+    | (checker == "1") && (position `elem` evil state) = '🔻'
+    | (checker == "1") && (position `elem` player1 state) = '🔵'
+    | (checker == "1") && (position `elem` player2 state) = '🔴'
+    | (checker == "1") && (position `elem` good state) = '🔸'
+    | (checker == "1") && (position `elem` surprise state) = '🎁'
+    | (checker == "1") = '⬜'
 
 -- Inicializando o jogo
 main :: IO ()
