@@ -124,3 +124,36 @@ randomPosition :: [a] -> StdGen -> a
 randomPosition xs inputStdGen = element
     where indexStdGenTuple = randomR (0, length xs - 1) inputStdGen
           element          = xs !! fst (indexStdGenTuple)
+
+-- A cada movimento de um dos personagens o step chama a função updateState para atualizar todo o jogo
+step :: Score -> [Char] -> State -> IO State
+step score checker state = sample timer getInput 
+    >>= \ inputMove ->
+        displayState score checker $ updateState state (getVector inputMove) 
+
+-- Espera um input e retorna o mesmo
+getInput :: IO Char
+getInput = hSetEcho stdin False 
+    >> hSetBuffering stdin NoBuffering
+    >> getChar
+
+-- O tempo no qual os players se mexem, nesse caso, Um quarto de 1 segundo
+timer :: Int
+timer = div ((9 :: Int) ^ (6 :: Int)) 2
+
+-- Thread que controla o tempo e os inputs
+sample :: Int -> IO a -> IO (Maybe a)
+sample n f = concurrently (timeout n f) (threadDelay n) 
+            >>= \ (result, _) -> return result
+
+-- Retorna uma tupla com 3 elementos que é retornada de acordo com o que o usuário digita
+getVector :: Maybe Char -> Maybe MoveVector
+getVector (Just 'w') = Just (0, 0,  1)
+getVector (Just 'a') = Just (0, -1,  0)
+getVector (Just 's') = Just (0, 0, -1)
+getVector (Just 'd') = Just (0, 1,  0)
+getVector (Just 'i') = Just (1, 0,  1)
+getVector (Just 'j') = Just (1, -1,  0)
+getVector (Just 'k') = Just (1, 0, -1)
+getVector (Just 'l') = Just (1, 1,  0)
+getVector _          = Nothing
