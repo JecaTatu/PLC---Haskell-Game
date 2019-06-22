@@ -41,3 +41,24 @@ data State = State {
     level :: Int,
     count :: Int
 } deriving Show
+
+-- Inicializando o jogo
+main :: IO ()
+main = do
+        putStrLn "Vamos ao jogo, digite 1 para iniciar!"
+        thematic <- getLine
+        fim <- newMVar 1
+        score <- newMVar (0,0)
+        level <- newMVar 1
+        forkIO(newPuzzle fim level score thematic)
+        waitThreads fim
+        return ()
+
+waitThreads :: MVar Int -> IO ()
+waitThreads fim = do 
+    f <- takeMVar fim
+    if (f > 0) then
+        do putMVar fim f;
+            waitThreads fim
+    else
+        return ()
