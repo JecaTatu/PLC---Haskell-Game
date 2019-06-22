@@ -225,6 +225,29 @@ randomFunction x inputStdGen = element
     where indexStdGenTuple = randomR (0, length x - 1) inputStdGen
           element = fst (indexStdGenTuple)
 
+-- Retorna se o player está com a cabeça em cima de um elemento bom
+player1HasBenefit :: State -> Bool
+player1HasBenefit state
+    = head (player1 state) `elem` good state  
+
+-- Retorna se o player está com a cabeça em cima de um elemento bom
+player2HasBenefit :: State -> Bool
+player2HasBenefit state
+    = head (player2 state) `elem` good state  
+
+-- Retorna se o player está com a cabeça em cima de um elemento surpresa
+player1HasSurprise :: State -> Bool
+player1HasSurprise state
+    = head (player1 state) `elem` surprise state
+
+-- Retorna se o player está com a cabeça em cima de um elemento surpresa
+player2HasSurprise :: State -> Bool
+player2HasSurprise state
+    = head (player2 state) `elem` surprise state
+
+vectorAdd :: Vector -> MoveVector -> Vector
+vectorAdd (x1, y1) (a, x2, y2) = (x1 + x2, y1 + y2)
+
 -- Inicializando o jogo
 main :: IO ()
 main = do
