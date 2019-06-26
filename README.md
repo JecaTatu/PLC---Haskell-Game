@@ -20,7 +20,7 @@ $ cabal build
 
 Depois execute:
 
-$ ghc -threaded -o game Puzzle.hs
+$ ghc -threaded -o game Snake.hs
 
 E por fim:
 
